@@ -54,16 +54,15 @@
 
   <script>
     const container = document.getElementById('heart');
-    const layers = 16; // 3D derinlik katmanı
+    const layers = 16;
     const textPerLayer = 28;
 
     for (let l = 0; l < layers; l++) {
-      const phi = (l / layers) * Math.PI; // Z ekseni açısı
+      const phi = (l / layers) * Math.PI;
       
       for (let i = 0; i < textPerLayer; i++) {
         const theta = (i / textPerLayer) * Math.PI * 2;
 
-        // 3D Kalp Parametrik Denklemi
         const scale = 12;
         const x = scale * 16 * Math.pow(Math.sin(theta), 3) * Math.sin(phi);
         const y = -scale * (13 * Math.cos(theta) - 5 * Math.cos(2 * theta) - 2 * Math.cos(3 * theta) - Math.cos(4 * theta));
@@ -73,7 +72,6 @@
         span.className = 'ui_love_word';
         span.innerText = 'I love you';
         
-        // 3D uzayda konumlandırma ve açı verme
         span.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${theta}rad)`;
 
         container.appendChild(span);
