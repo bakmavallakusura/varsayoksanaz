@@ -2,13 +2,14 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>3D Heart Animation</title>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      touch-action: none; /* Dokunmatik kaydırmaları engeller */
     }
     body {
       height: 100vh;
@@ -18,13 +19,17 @@
       align-items: center;
       overflow: hidden;
       perspective: 1000px;
+      user-select: none;
     }
     .heart-3d {
       position: relative;
       width: 0;
       height: 0;
       transform-style: preserve-3d;
-      animation: rotate3d 10s linear infinite;
+      cursor: grab;
+    }
+    .heart-3d:active {
+      cursor: grabbing;
     }
     .ui_love_word {
       position: absolute;
@@ -37,15 +42,6 @@
       transform-style: preserve-3d;
       backface-visibility: visible;
     }
-
-    @keyframes rotate3d {
-      0% {
-        transform: rotateX(10deg) rotateY(0deg) rotateZ(0deg);
-      }
-      100% {
-        transform: rotateX(10deg) rotateY(360deg) rotateZ(360deg);
-      }
-    }
   </style>
 </head>
 <body>
@@ -57,6 +53,7 @@
     const layers = 16;
     const textPerLayer = 28;
 
+    // 3D Kalp Noktalarını Oluşturma
     for (let l = 0; l < layers; l++) {
       const phi = (l / layers) * Math.PI;
       
@@ -71,7 +68,7 @@
         const span = document.createElement('span');
         span.className = 'ui_love_word';
         
-        // %40 ihtimalle sudenaz, %60 ihtimalle I love you yazdırır
+        // %40 sudenaz, %60 I love you
         if (Math.random() < 0.4) {
           span.innerText = 'sudenaz';
         } else {
@@ -83,6 +80,59 @@
         container.appendChild(span);
       }
     }
+
+    // Dokunarak / Sürükleyerek Döndürme Mantığı
+    let isDragging = false;
+    let previousX = 0;
+    let previousY = 0;
+    let rotX = 10;
+    let rotY = 0;
+
+    function updateTransform() {
+      container.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+    }
+
+    updateTransform();
+
+    function startDrag(e) {
+      isDragging = true;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      previousX = clientX;
+      previousY = clientY;
+    }
+
+    function moveDrag(e) {
+      if (!isDragging) return;
+      
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      const deltaX = clientX - previousX;
+      const deltaY = clientY - previousY;
+
+      rotY += deltaX * 0.5;
+      rotX -= deltaY * 0.5;
+
+      updateTransform();
+
+      previousX = clientX;
+      previousY = clientY;
+    }
+
+    function stopDrag() {
+      isDragging = false;
+    }
+
+    // Fare Olayları
+    window.addEventListener('mousedown', startDrag);
+    window.addEventListener('mousemove', moveDrag);
+    window.addEventListener('mouseup', stopDrag);
+
+    // Dokunmatik (Mobil) Olayları
+    window.addEventListener('touchstart', startDrag, { passive: false });
+    window.addEventListener('touchmove', moveDrag, { passive: false });
+    window.addEventListener('touchend', stopDrag);
   </script>
 </body>
 </html>
