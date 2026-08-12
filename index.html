@@ -3,110 +3,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Sudenaz Final 3D</title>
+  <title>Sudenaz Perfect Heart</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
-    body { width: 100vw; height: 100vh; background: radial-gradient(circle, #1a0526 0%, #030106 100%); overflow: hidden; display: flex; justify-content: center; align-items: center; }
-    #canvas-container { width: 100%; height: 100%; }
+    body { margin: 0; background: #05000a; overflow: hidden; touch-action: none; }
+    canvas { display: block; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
-
-  <div id="canvas-container"></div>
-
   <script>
-    const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 28;
-
+    camera.position.z = 25;
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    container.appendChild(renderer.domElement);
+    document.body.appendChild(renderer.domElement);
 
-    // KAR EFEKTİ
-    const starGeo = new THREE.BufferGeometry();
-    const starCount = 800;
-    const posArr = new Float32Array(starCount * 3);
-    for(let i=0; i<starCount*3; i++) posArr[i] = (Math.random() - 0.5) * 60;
-    starGeo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
-    const starMat = new THREE.PointsMaterial({ size: 0.1, color: 0xffffff, transparent: true, opacity: 0.3 });
-    const stars = new THREE.Points(starGeo, starMat);
-    scene.add(stars);
+    // KALP GEOMETRİSİ (Daha pürüzsüz ve Solid)
+    const shape = new THREE.Shape();
+    shape.moveTo(0, 0);
+    shape.bezierCurveTo(0, 1.5, 2, 2.5, 4, 2.5);
+    shape.bezierCurveTo(6, 2.5, 6, 0.5, 6, 0.5);
+    shape.bezierCurveTo(6, -1.5, 3, -3, 0, -5);
+    shape.bezierCurveTo(-3, -3, -6, -1.5, -6, 0.5);
+    shape.bezierCurveTo(-6, 0.5, -6, 2.5, -4, 2.5);
+    shape.bezierCurveTo(-2, 2.5, 0, 1.5, 0, 0);
 
-    function createTextTexture(text, colorStr, glowColor, fontSize = 42) {
+    const geometry = new THREE.ShapeGeometry(shape, 64);
+    const material = new THREE.MeshBasicMaterial({ 
+        color: 0xff0055, 
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.95 
+    });
+    
+    const heart = new THREE.Group();
+    const front = new THREE.Mesh(geometry, material);
+    const back = new THREE.Mesh(geometry, material);
+    back.rotation.y = Math.PI;
+    heart.add(front, back);
+    scene.add(heart);
+
+    // YAZILAR
+    function createTextTexture(text) {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      canvas.width = 1024; canvas.height = 256;
-      ctx.font = `Bold ${fontSize}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      if (glowColor) { ctx.shadowColor = glowColor; ctx.shadowBlur = 20; }
-      ctx.fillStyle = colorStr; ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+      canvas.width = 512; canvas.height = 128;
+      ctx.font = 'Bold 90px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(text, 256, 64);
       return new THREE.CanvasTexture(canvas);
     }
 
-    const texSudenaz = createTextTexture('sudenaz', '#ff66ff', '#ff00ff', 50);
-    const texLove = createTextTexture('I love you', '#ff33aa', '#ff0077', 50);
-    const texFront = createTextTexture('seni', '#ffffff', '#ff00ff', 120);
-    const texRight = createTextTexture('çok', '#ffffff', '#ff00ff', 120);
-    const texBack = createTextTexture('seviyorum', '#ffffff', '#ff00ff', 120);
-    const texLeft = createTextTexture('hayatım', '#ffffff', '#ff00ff', 120);
-
-    const heartGroup = new THREE.Group();
-    scene.add(heartGroup);
-
-    for (let i = 0; i < 800; i++) {
-      const u = Math.PI * (2 * Math.random() - 1);
-      const v = (Math.PI / 2) * (2 * Math.random() - 1);
-      const x = 16 * Math.pow(Math.sin(u), 3) * Math.cos(v);
-      const y = (13 * Math.cos(u) - 5 * Math.cos(2*u) - 2 * Math.cos(3*u) - Math.cos(4*u)) * Math.cos(v);
-      const z = 6 * Math.sin(v);
-      const mat = new THREE.MeshBasicMaterial({ map: Math.random() > 0.5 ? texSudenaz : texLove, transparent: true, opacity: 0.6, side: THREE.FrontSide });
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.45), mat);
-      mesh.position.set(x * 0.35, y * 0.35, z * 0.35);
-      mesh.lookAt(mesh.position.clone().multiplyScalar(2));
-      heartGroup.add(mesh);
-    }
-
-    const cards = [
-      { t: texFront, a: 0 }, { t: texRight, a: -Math.PI / 2 },
-      { t: texBack, a: Math.PI }, { t: texLeft, a: Math.PI / 2 }
-    ].map(c => {
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(12, 3), new THREE.MeshBasicMaterial({map: c.t, transparent: true, opacity: 0}));
+    const messages = ['seni', 'çok', 'seviyorum', 'hayatım'];
+    const cards = messages.map((msg, i) => {
+      const tex = createTextTexture(msg);
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(10, 2.5), new THREE.MeshBasicMaterial({map: tex, transparent: true, opacity: 0}));
       scene.add(mesh);
-      return { mesh, angle: c.a };
+      return { mesh, angle: (i / 4) * Math.PI * 2 };
     });
 
-    let isDragging = false, rotY = 0;
-    window.addEventListener('pointerdown', () => isDragging = true);
-    window.addEventListener('pointerup', () => isDragging = false);
-    window.addEventListener('pointermove', (e) => { if(isDragging) rotY += e.movementX * 0.01; });
-
+    let rotY = 0;
     function animate() {
       requestAnimationFrame(animate);
+      rotY -= 0.015; // Genel hız
       
-      // SOLDAN SAĞA DÖNÜŞ İÇİN: rotY'den eksiltiyoruz
-      if(!isDragging) rotY -= 0.003; 
+      // Kalp kendi ekseninde daha hızlı dönsün
+      heart.rotation.y = rotY * 1.5; 
       
-      heartGroup.rotation.y = rotY;
-      stars.rotation.y += 0.0005;
-
-      // Kilit açma mekanizması (Matematiksel olarak güvenli)
-      let normalizedRot = (rotY % (Math.PI * 2));
-      if(normalizedRot < 0) normalizedRot += Math.PI * 2;
-
       cards.forEach(c => {
-        let target = (-c.angle) % (Math.PI * 2);
-        if(target < 0) target += Math.PI * 2;
-        
-        const diff = Math.abs(normalizedRot - target);
-        const minDiff = Math.min(diff, Math.PI * 2 - diff);
-        const maxAngle = Math.PI / 4;
-        
-        c.mesh.material.opacity = minDiff < maxAngle ? Math.pow(1 - (minDiff/maxAngle), 2) : 0;
-        c.mesh.position.set(Math.sin(-c.angle - rotY) * 15, 0, Math.cos(-c.angle - rotY) * 15);
+        // Yazılar orbit yapsın
+        c.mesh.position.set(Math.sin(-c.angle - rotY) * 12, 0, Math.cos(-c.angle - rotY) * 12);
         c.mesh.lookAt(camera.position);
+        
+        // Sadece karşıya geldiğinde görünsün
+        c.mesh.material.opacity = Math.cos(rotY + c.angle) > 0.7 ? 1 : 0;
       });
       renderer.render(scene, camera);
     }
