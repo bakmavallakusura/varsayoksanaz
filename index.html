@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Sudenaz 3D Heart</title>
+  <title>Sudenaz 3D Neon Heart</title>
   <style>
     * {
       margin: 0;
@@ -12,135 +12,168 @@
       touch-action: none;
     }
     body {
+      width: 100vw;
       height: 100vh;
-      background: #050505;
+      background-color: #030106;
+      overflow: hidden;
       display: flex;
       justify-content: center;
       align-items: center;
-      overflow: hidden;
-      perspective: 1000px;
-      user-select: none;
+      font-family: Arial, sans-serif;
     }
-    .scene {
-      width: 0;
-      height: 0;
-      transform-style: preserve-3d;
-    }
-    .heart-3d {
-      position: relative;
-      transform-style: preserve-3d;
-      cursor: grab;
-      will-change: transform; /* Mobil GPU ivmelendirmesi */
-    }
-    .ui_love_word {
-      position: absolute;
-      color: #a020f0;
-      font-size: 0.95rem;
-      font-weight: bold;
-      font-family: sans-serif;
-      /* Hafifletilmiş performans dostu parlama */
-      text-shadow: 0 0 5px #a020f0;
-      white-space: nowrap;
-      transform-style: preserve-3d;
-      backface-visibility: hidden; /* Arkadaki gereksiz yüzeyleri çizmeyerek hızlandırır */
-      will-change: transform;
+    #canvas-container {
+      width: 100%;
+      height: 100%;
     }
   </style>
+  <!-- 3D Render Engine (Three.js) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-  <div class="scene">
-    <div class="heart-3d" id="heart"></div>
-  </div>
+  <div id="canvas-container"></div>
 
   <script>
-    const container = document.getElementById('heart');
+    // 1. SAHNE VE KAMERA KURULUMU
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
     
-    // Mobil performans için katman ve yazı sayıları optimize edildi
-    const layers = 12; 
-    const textPerLayer = 20;
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 28;
 
-    for (let l = 0; l < layers; l++) {
-      const phi = (l / layers) * Math.PI; 
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    // 2. TEXTURE (YAZI GÖRSELLERİ) OLUŞTURUCU
+    function createTextTexture(text, colorStr) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 256;
+      canvas.height = 64;
+
+      ctx.fillStyle = 'rgba(0,0,0,0)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.font = 'Bold 32px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
       
-      for (let i = 0; i < textPerLayer; i++) {
-        const theta = (i / textPerLayer) * Math.PI * 2;
+      // Neon Parlama Efekti
+      ctx.shadowColor = colorStr;
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = colorStr;
+      ctx.fillText(text, canvas.width / 2, canvas.height / 2);
 
-        const scale = 11; 
-        const sinPhi = Math.sin(phi);
-        const cosPhi = Math.cos(phi);
-
-        const x = scale * 16 * Math.pow(Math.sin(theta), 3) * sinPhi;
-        const y = -scale * (13 * Math.cos(theta) - 5 * Math.cos(2 * theta) - 2 * Math.cos(3 * theta) - Math.cos(4 * theta)) * (0.8 + 0.2 * sinPhi);
-        const z = scale * 8 * Math.cos(theta) * sinPhi + scale * 2 * cosPhi;
-
-        const span = document.createElement('span');
-        span.className = 'ui_love_word';
-        
-        if (Math.random() < 0.4) {
-          span.innerText = 'sudenaz';
-        } else {
-          span.innerText = 'I love you';
-        }
-        
-        span.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${theta}rad)`;
-        container.appendChild(span);
-      }
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.minFilter = THREE.LinearFilter;
+      return texture;
     }
 
-    // Dokunarak / Sürükleyerek Döndürme
+    const texSudenaz = createTextTexture('sudenaz', '#c040ff');
+    const texILoveYou = createTextTexture('I love you', '#a020f0');
+
+    // 3. 3D KALP GEOMETRİSİ VE PARÇACIKLAR
+    const heartGroup = new THREE.Group();
+    scene.add(heartGroup);
+
+    const totalPoints = 450; // İdeal yoğunluk
+    const planeGeo = new THREE.PlaneGeometry(2.2, 0.55);
+
+    for (let i = 0; i < totalPoints; i++) {
+      // Düzgün 3D Kalp Dağılımı Denklemi
+      const u = Math.PI * (2 * Math.random() - 1);
+      const v = (Math.PI / 2) * (2 * Math.random() - 1);
+
+      // Parametrik 3D Kalp Formülü
+      const x = 16 * Math.pow(Math.sin(u), 3) * Math.cos(v);
+      const y = (13 * Math.cos(u) - 5 * Math.cos(2*u) - 2 * Math.cos(3*u) - Math.cos(4*u)) * Math.cos(v);
+      const z = 6 * Math.sin(v);
+
+      // %40 sudenaz, %60 I love you seçimi
+      const isSudenaz = Math.random() < 0.4;
+      const mat = new THREE.MeshBasicMaterial({
+        map: isSudenaz ? texSudenaz : texILoveYou,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide
+      });
+
+      const mesh = new THREE.Mesh(planeGeo, mat);
+      
+      // Ölçekleme ve Konumlandırma
+      const scale = 0.65;
+      mesh.position.set(x * scale * 0.5, y * scale * 0.5, z * scale * 0.5);
+      
+      // Yazıların kalbin dışına doğru bakması
+      mesh.lookAt(mesh.position.clone().multiplyScalar(2));
+
+      heartGroup.add(mesh);
+    }
+
+    // Başlangıç Açısı
+    heartGroup.rotation.x = 0.2;
+
+    // 4. DOKUNMATİK / FARE İLE DÖNDÜRME KONTROLÜ
     let isDragging = false;
-    let previousX = 0;
-    let previousY = 0;
-    let rotX = 15;
-    let rotY = 10;
+    let previousMousePosition = { x: 0, y: 0 };
 
-    function updateTransform() {
-      container.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
-    }
-
-    updateTransform();
-
-    function startDrag(e) {
+    function onPointerDown(e) {
       isDragging = true;
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      previousX = clientX;
-      previousY = clientY;
+      const x = e.touches ? e.touches[0].clientX : e.clientX;
+      const y = e.touches ? e.touches[0].clientY : e.clientY;
+      previousMousePosition = { x, y };
     }
 
-    function moveDrag(e) {
+    function onPointerMove(e) {
       if (!isDragging) return;
-      
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-      const deltaX = clientX - previousX;
-      const deltaY = clientY - previousY;
+      const x = e.touches ? e.touches[0].clientX : e.clientX;
+      const y = e.touches ? e.touches[0].clientY : e.clientY;
 
-      rotY += deltaX * 0.4;
-      rotX -= deltaY * 0.4;
+      const deltaX = x - previousMousePosition.x;
+      const deltaY = y - previousMousePosition.y;
 
-      rotX = Math.max(-60, Math.min(60, rotX));
+      heartGroup.rotation.y += deltaX * 0.008;
+      heartGroup.rotation.x += deltaY * 0.008;
 
-      // Performans için requestAnimationFrame kullanımı
-      requestAnimationFrame(updateTransform);
-
-      previousX = clientX;
-      previousY = clientY;
+      previousMousePosition = { x, y };
     }
 
-    function stopDrag() {
+    function onPointerUp() {
       isDragging = false;
     }
 
-    window.addEventListener('mousedown', startDrag);
-    window.addEventListener('mousemove', moveDrag);
-    window.addEventListener('mouseup', stopDrag);
+    window.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('mousemove', onPointerMove);
+    window.addEventListener('mouseup', onPointerUp);
 
-    window.addEventListener('touchstart', startDrag, { passive: true });
-    window.addEventListener('touchmove', moveDrag, { passive: true });
-    window.addEventListener('touchend', stopDrag);
+    window.addEventListener('touchstart', onPointerDown, { passive: true });
+    window.addEventListener('touchmove', onPointerMove, { passive: true });
+    window.addEventListener('touchend', onPointerUp);
+
+    // Ekran Boyutu Değişimi
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // 5. ANIMATION LOOP (AKICI RENDER)
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      // Bırakıldığında çok hafif kendi etrafında süzülsün
+      if (!isDragging) {
+        heartGroup.rotation.y += 0.002;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
   </script>
 </body>
 </html>
