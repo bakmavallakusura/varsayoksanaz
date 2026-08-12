@@ -8,14 +8,52 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { width: 100vw; height: 100vh; background: radial-gradient(circle, #210332 0%, #030106 100%); overflow: hidden; display: flex; justify-content: center; align-items: center; font-family: 'Arial', sans-serif; touch-action: none; }
     #canvas-container { width: 100%; height: 100%; }
+    
+    /* Zarif Birlikte Geçen Zaman Sayacı */
+    #counter-container {
+      position: absolute;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 14px;
+      letter-spacing: 1.5px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 8px 18px;
+      border-radius: 20px;
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      pointer-events: none;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
   <div id="canvas-container"></div>
+  <div id="counter-container">Birlikte: <span id="timer">Yükleniyor...</span></div>
 
   <script>
+    // --- 1. ZAMAN SAYACI (2 Ekim 2024) ---
+    const startDate = new Date('2024-10-02T00:00:00');
+
+    function updateCounter() {
+      const now = new Date();
+      const diff = now - startDate;
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / 1000 / 60) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+
+      document.getElementById('timer').innerText = `${days} Gün ${hours} Saat ${minutes} Dk ${seconds} Sn`;
+    }
+    setInterval(updateCounter, 1000);
+    updateCounter();
+
+    // --- 2. THREE.JS SAHNE KURULUMU ---
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     
@@ -33,32 +71,25 @@
     const posArr = new Float32Array(starCount * 3);
     for(let i=0; i<starCount*3; i++) posArr[i] = (Math.random() - 0.5) * 60;
     starGeo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
-    const starMat = new THREE.PointsMaterial({ size: 0.12, color: 0xffffff, transparent: true, opacity: 0.3 });
+    const starMat = new THREE.PointsMaterial({ size: 0.1, color: 0xffffff, transparent: true, opacity: 0.3 });
     const stars = new THREE.Points(starGeo, starMat);
     scene.add(stars);
 
-    // Tok ve Belirgin Şeffaf Yazı Üretici (Çift Katmanlı Glow & Stroke)
-    function createTokTextTexture(text, mainColor, glowColor) {
+    // Yazı Üretici
+    function createTextTexture(text, colorStr, glowColor, fontSize = 65) {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       canvas.width = 1024; 
       canvas.height = 256;
 
-      ctx.font = '900 85px "Arial Black", Arial, sans-serif';
+      ctx.font = `Bold ${fontSize}px Arial`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-
-      // Parlama Katmanı
-      ctx.shadowColor = glowColor;
-      ctx.shadowBlur = 25;
-      
-      // Yazı Çerçevesi (Dolgunlaştırma)
-      ctx.strokeStyle = glowColor;
-      ctx.lineWidth = 10;
-      ctx.strokeText(text, canvas.width / 2, canvas.height / 2);
-
-      // Ana Yazı Dolgusu
-      ctx.fillStyle = mainColor;
+      if (glowColor) {
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = 35;
+      }
+      ctx.fillStyle = colorStr;
       ctx.fillText(text, canvas.width / 2, canvas.height / 2);
       
       const texture = new THREE.CanvasTexture(canvas);
@@ -66,11 +97,13 @@
       return texture;
     }
 
-    const texSudenaz = createTokTextTexture('sudenaz', '#ffffff', '#ff00aa');
-    const texLove = createTokTextTexture('I love you', '#ffffff', '#ff0066');
+    const texSudenaz = createTextTexture('sudenaz', '#ffffff', '#ff00ff', 65);
+    const texLove = createTextTexture('I love you', '#ffffff', '#ff0077', 65);
 
     const heartGroup = new THREE.Group();
     scene.add(heartGroup);
+
+    const materials = [];
 
     // Dış Yüzey Kalp Noktaları (2500 Adet)
     for (let i = 0; i < 2500; i++) {
@@ -83,16 +116,19 @@
       const mat = new THREE.MeshBasicMaterial({ 
         map: Math.random() > 0.5 ? texSudenaz : texLove, 
         transparent: true, 
-        opacity: 0.95, 
+        opacity: 0.85, 
+        color: new THREE.Color(0xff77ff),
         side: THREE.FrontSide 
       });
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.55), mat);
+      materials.push(mat);
+
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 0.5), mat);
       mesh.position.set(x * 0.38, y * 0.38, z * 0.38);
       mesh.lookAt(mesh.position.clone().multiplyScalar(2));
       heartGroup.add(mesh);
     }
 
-    // İç Dolgu Kalp Noktaları (1500 Adet - Tamamen Dolu Kalp)
+    // İç Dolgu Kalp Noktaları (1500 Adet)
     for (let i = 0; i < 1500; i++) {
       const u = Math.PI * (2 * Math.random() - 1);
       const v = (Math.PI / 2) * (2 * Math.random() - 1);
@@ -100,30 +136,83 @@
       const y = (13 * Math.cos(u) - 5 * Math.cos(2*u) - 2 * Math.cos(3*u) - Math.cos(4*u)) * Math.cos(v);
       const z = 6 * Math.sin(v);
       
-      const internalScale = Math.random() * 0.9;
+      const internalScale = Math.random() * 0.85;
       const mat = new THREE.MeshBasicMaterial({ 
         map: Math.random() > 0.5 ? texSudenaz : texLove, 
         transparent: true, 
-        opacity: 0.7, 
+        opacity: 0.5, 
+        color: new THREE.Color(0xff44bb),
         side: THREE.FrontSide 
       });
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48), mat);
+      materials.push(mat);
+
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.4), mat);
       mesh.position.set(x * 0.38 * internalScale, y * 0.38 * internalScale, z * 0.38 * internalScale);
       mesh.rotation.y = Math.random() * Math.PI;
       heartGroup.add(mesh);
     }
 
-    // Dokunma & Parmakla Hassas Döndürme Kontrolleri
+    // --- 3. PATLAMA PARÇACIKLARI (BURST PARTICLES) ---
+    const burstCount = 60;
+    const burstGeo = new THREE.BufferGeometry();
+    const burstPositions = new Float32Array(burstCount * 3);
+    const burstVelocities = [];
+
+    for (let i = 0; i < burstCount; i++) {
+      burstPositions[i * 3] = 0;
+      burstPositions[i * 3 + 1] = 0;
+      burstPositions[i * 3 + 2] = 0;
+      burstVelocities.push(new THREE.Vector3(0, 0, 0));
+    }
+
+    burstGeo.setAttribute('position', new THREE.BufferAttribute(burstPositions, 3));
+    const burstMat = new THREE.PointsMaterial({
+      size: 0.35,
+      color: 0xff66cc,
+      transparent: true,
+      opacity: 0
+    });
+    const burstParticles = new THREE.Points(burstGeo, burstMat);
+    scene.add(burstParticles);
+
+    function triggerBurst() {
+      const positions = burstParticles.geometry.attributes.position.array;
+      for (let i = 0; i < burstCount; i++) {
+        positions[i * 3] = 0;
+        positions[i * 3 + 1] = 0;
+        positions[i * 3 + 2] = 0;
+
+        burstVelocities[i].set(
+          (Math.random() - 0.5) * 0.4,
+          (Math.random() - 0.5) * 0.4,
+          (Math.random() - 0.5) * 0.4
+        );
+      }
+      burstParticles.geometry.attributes.position.needsUpdate = true;
+      burstMat.opacity = 1.0;
+    }
+
+    // --- 4. DOKUNMA, DÖNDÜRME VE NABIZ KONTROLLERİ ---
     let isDragging = false;
     let previousPointerPosition = { x: 0, y: 0 };
+    let targetScale = 1.0;
 
     window.addEventListener('pointerdown', (e) => {
       isDragging = true;
       previousPointerPosition = { x: e.clientX, y: e.clientY };
+      targetScale = 1.15;
+      triggerBurst();
     });
 
-    window.addEventListener('pointerup', () => isDragging = false);
-    window.addEventListener('pointercancel', () => isDragging = false);
+    window.addEventListener('pointerup', () => {
+      isDragging = false;
+      targetScale = 1.0;
+    });
+
+    window.addEventListener('pointercancel', () => {
+      isDragging = false;
+      targetScale = 1.0;
+    });
 
     window.addEventListener('pointermove', (e) => {
       if (!isDragging) return;
@@ -137,44 +226,46 @@
       previousPointerPosition = { x: e.clientX, y: e.clientY };
     });
 
-    // Yakınlaştırma (Pinch & Wheel)
+    // Zoom Desteği
     window.addEventListener('wheel', (e) => {
       camera.position.z += e.deltaY * 0.015;
       camera.position.z = Math.max(10, Math.min(35, camera.position.z));
     }, { passive: true });
 
-    let initialPinchDistance = null;
-    window.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 2) {
-        initialPinchDistance = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-      }
-    }, { passive: true });
+    // --- 5. ANIMASYON DÖNGÜSÜ & RENK GEÇİŞLERİ ---
+    let colorTime = 0;
 
-    window.addEventListener('touchmove', (e) => {
-      if (e.touches.length === 2 && initialPinchDistance) {
-        const currentDistance = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        const diff = initialPinchDistance - currentDistance;
-        camera.position.z += diff * 0.03;
-        camera.position.z = Math.max(10, Math.min(35, camera.position.z));
-        initialPinchDistance = currentDistance;
-      }
-    }, { passive: true });
-
-    // Animasyon Döngüsü
     function animate() {
       requestAnimationFrame(animate);
       
-      // Ekrana basılı tutulmuyorsa otomatik döner, basıldığında olduğu yerde durup parmağı takip eder
       if (!isDragging) {
         heartGroup.rotation.y += 0.004;
       }
+
+      heartGroup.scale.x += (targetScale - heartGroup.scale.x) * 0.1;
+      heartGroup.scale.y += (targetScale - heartGroup.scale.y) * 0.1;
+      heartGroup.scale.z += (targetScale - heartGroup.scale.z) * 0.1;
+
+      colorTime += 0.005;
+      const r = Math.sin(colorTime) * 0.2 + 0.8;
+      const g = Math.sin(colorTime + 2) * 0.2 + 0.3;
+      const b = Math.sin(colorTime + 4) * 0.2 + 0.7;
       
+      for (let i = 0; i < materials.length; i++) {
+        materials[i].color.setRGB(r, g, b);
+      }
+
+      if (burstMat.opacity > 0.01) {
+        const positions = burstParticles.geometry.attributes.position.array;
+        for (let i = 0; i < burstCount; i++) {
+          positions[i * 3] += burstVelocities[i].x;
+          positions[i * 3 + 1] += burstVelocities[i].y;
+          positions[i * 3 + 2] += burstVelocities[i].z;
+        }
+        burstParticles.geometry.attributes.position.needsUpdate = true;
+        burstMat.opacity *= 0.92;
+      }
+
       stars.rotation.y += 0.0002;
       renderer.render(scene, camera);
     }
