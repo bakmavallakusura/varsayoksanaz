@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Sudenaz 3D Fixed Text Heart</title>
+  <title>Sudenaz Final Edition</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
-    body { width: 100vw; height: 100vh; background-color: #030106; overflow: hidden; display: flex; justify-content: center; align-items: center; font-family: Arial, sans-serif; }
+    body { width: 100vw; height: 100vh; background-color: #030106; overflow: hidden; display: flex; justify-content: center; align-items: center; font-family: sans-serif; }
     #canvas-container { width: 100%; height: 100%; }
-    .hint { position: absolute; bottom: 20px; color: rgba(255, 255, 255, 0.4); font-size: 0.8rem; pointer-events: none; text-align: center; }
+    .hint { position: absolute; bottom: 20px; color: rgba(255, 255, 255, 0.6); font-size: 0.9rem; pointer-events: none; text-shadow: 0 0 5px #000; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
   <div id="canvas-container"></div>
-  <div class="hint">Kalbi çevirerek mesajı yakala...</div>
+  <div class="hint">Kalbi döndür, mesajı yakala...</div>
 
   <script>
     const container = document.getElementById('canvas-container');
@@ -28,40 +28,43 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
-    function createTextTexture(text, colorStr, glowColor, fontSize = 36, addBg = false) {
+    // Daha yüksek çözünürlüklü tekstürler
+    function createTextTexture(text, colorStr, glowColor, fontSize = 42, addBg = false) {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      canvas.width = 512; canvas.height = 128;
+      canvas.width = 1024; canvas.height = 256; 
       ctx.fillStyle = 'rgba(0,0,0,0)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
       if (addBg) {
-        ctx.fillStyle = 'rgba(12, 3, 24, 0.9)';
-        ctx.strokeStyle = '#ff00aa'; ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.roundRect(20, 10, canvas.width - 40, canvas.height - 20, 16);
+        ctx.fillStyle = 'rgba(15, 0, 30, 0.95)';
+        ctx.strokeStyle = '#ff00ff'; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.roundRect(40, 20, canvas.width - 80, canvas.height - 40, 30);
         ctx.fill(); ctx.stroke();
       }
       ctx.font = `Bold ${fontSize}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      if (glowColor) { ctx.shadowColor = glowColor; ctx.shadowBlur = 20; }
+      if (glowColor) { ctx.shadowColor = glowColor; ctx.shadowBlur = 30; }
       ctx.fillStyle = colorStr; ctx.fillText(text, canvas.width / 2, canvas.height / 2);
       const texture = new THREE.CanvasTexture(canvas);
       texture.minFilter = THREE.LinearFilter;
       return texture;
     }
 
-    const texOuterSudenaz = createTextTexture('sudenaz', '#f066ff', '#e000ff', 34);
-    const texOuterILoveYou = createTextTexture('I love you', '#ff33aa', '#ff0077', 34);
-    const texInnerSudenaz = createTextTexture('sudenaz', '#3a0ca3', null, 26);
-    const texInnerILoveYou = createTextTexture('I love you', '#240046', null, 26);
+    const texOuterSudenaz = createTextTexture('sudenaz', '#ff66ff', '#ff00ff', 48);
+    const texOuterILoveYou = createTextTexture('I love you', '#ff33aa', '#ff0077', 48);
+    const texInnerSudenaz = createTextTexture('sudenaz', '#5e17eb', null, 36);
+    const texInnerILoveYou = createTextTexture('I love you', '#3c096c', null, 36);
 
-    const texFront = createTextTexture('seni', '#ffffff', '#ff00aa', 64, true);
-    const texRight = createTextTexture('çok', '#ffffff', '#ff00aa', 64, true);
-    const texBack = createTextTexture('seviyorum', '#ffffff', '#ff00aa', 64, true);
-    const texLeft = createTextTexture('hayatım', '#ffffff', '#ff00aa', 64, true);
+    const texFront = createTextTexture('seni', '#ffffff', '#ff00ff', 90, true);
+    const texRight = createTextTexture('çok', '#ffffff', '#ff00ff', 90, true);
+    const texBack = createTextTexture('seviyorum', '#ffffff', '#ff00ff', 90, true);
+    const texLeft = createTextTexture('hayatım', '#ffffff', '#ff00ff', 90, true);
 
     const heartGroup = new THREE.Group();
     scene.add(heartGroup);
 
-    const totalPoints = 360;
-    const planeGeo = new THREE.PlaneGeometry(2.2, 0.55);
+    // Kalp noktalarını sıkılaştırdık
+    const totalPoints = 500; 
+    const planeGeo = new THREE.PlaneGeometry(2.4, 0.6);
 
     for (let i = 0; i < totalPoints; i++) {
       const u = Math.PI * (2 * Math.random() - 1);
@@ -73,10 +76,9 @@
       const isInner = distFromCenter < 7; 
       const isSudenaz = Math.random() < 0.4;
       let chosenTex = isInner ? (isSudenaz ? texInnerSudenaz : texInnerILoveYou) : (isSudenaz ? texOuterSudenaz : texOuterILoveYou);
-      const mat = new THREE.MeshBasicMaterial({ map: chosenTex, transparent: true, blending: isInner ? THREE.NormalBlending : THREE.AdditiveBlending, depthWrite: false, side: THREE.FrontSide, opacity: isInner ? 0.35 : 0.95 });
+      const mat = new THREE.MeshBasicMaterial({ map: chosenTex, transparent: true, blending: isInner ? THREE.NormalBlending : THREE.AdditiveBlending, depthWrite: false, side: THREE.FrontSide, opacity: isInner ? 0.4 : 1.0 });
       const mesh = new THREE.Mesh(planeGeo, mat);
-      const scale = 0.65;
-      mesh.position.set(x * scale * 0.5, y * scale * 0.5, z * scale * 0.5);
+      mesh.position.set(x * 0.35, y * 0.35, z * 0.35);
       mesh.lookAt(mesh.position.clone().multiplyScalar(2));
       heartGroup.add(mesh);
     }
@@ -85,7 +87,7 @@
     scene.add(cardsGroup);
 
     function createDirectionCard(texture, angleY) {
-      const geo = new THREE.PlaneGeometry(11, 2.75);
+      const geo = new THREE.PlaneGeometry(12, 3);
       const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false, side: THREE.FrontSide, opacity: 0 });
       const mesh = new THREE.Mesh(geo, mat);
       cardsGroup.add(mesh);
@@ -121,8 +123,8 @@
       let diff = Math.abs(currentY - targetY);
       if (diff > Math.PI) diff = Math.PI * 2 - diff;
 
-      // HASSAS AÇI: Sadece tam doğru açıya gelince görünür
-      const maxAngle = Math.PI / 8; 
+      // HASSAS AÇI: Tam açıda belirmesi için
+      const maxAngle = Math.PI / 6; 
       if (diff < maxAngle) {
         card.mat.opacity = Math.pow(1 - (diff / maxAngle), 2);
       } else {
@@ -133,7 +135,7 @@
 
     function animate() {
       requestAnimationFrame(animate);
-      if (!isDragging) { heartGroup.rotation.y += 0.003; }
+      if (!isDragging) { heartGroup.rotation.y += 0.002; }
       updateCard(cardFront); updateCard(cardRight); updateCard(cardBack); updateCard(cardLeft);
       renderer.render(scene, camera);
     }
