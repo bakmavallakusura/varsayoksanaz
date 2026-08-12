@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Sudenaz Interactive 3D Heart</title>
+  <title>Sudenaz High Contrast 3D Heart</title>
   <style>
     * {
       margin: 0;
@@ -25,11 +25,10 @@
       width: 100%;
       height: 100%;
     }
-    /* Bilgilendirme yazısı */
     .hint {
       position: absolute;
       bottom: 20px;
-      color: rgba(255, 255, 255, 0.4);
+      color: rgba(255, 255, 255, 0.5);
       font-size: 0.8rem;
       pointer-events: none;
       text-align: center;
@@ -43,7 +42,6 @@
   <div class="hint">Farklı açılardan bakarak gizli kelimeleri bul...</div>
 
   <script>
-    // 1. SAHNE VE KAMERA
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     
@@ -55,8 +53,8 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
-    // 2. TEXTURE YARDIMCISI
-    function createTextTexture(text, colorStr, fontSize = 36) {
+    // TEXTURE OLUŞTURUCU
+    function createTextTexture(text, colorStr, glowColor, fontSize = 36, addBg = false) {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       canvas.width = 512;
@@ -65,12 +63,20 @@
       ctx.fillStyle = 'rgba(0,0,0,0)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      if (addBg) {
+        ctx.fillStyle = 'rgba(5, 2, 12, 0.85)';
+        ctx.fillRect(40, 20, canvas.width - 80, canvas.height - 40);
+      }
+
       ctx.font = `Bold ${fontSize}px Arial`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       
-      ctx.shadowColor = colorStr;
-      ctx.shadowBlur = 16;
+      if (glowColor) {
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = 18;
+      }
+      
       ctx.fillStyle = colorStr;
       ctx.fillText(text, canvas.width / 2, canvas.height / 2);
 
@@ -79,20 +85,25 @@
       return texture;
     }
 
-    const texSudenaz = createTextTexture('sudenaz', '#c040ff', 32);
-    const texILoveYou = createTextTexture('I love you', '#a020f0', 32);
+    // RENK RENK TEXTURE'LAR
+    // Dış Yüzey: Parlak Neon Mor
+    const texOuterSudenaz = createTextTexture('sudenaz', '#f066ff', '#e000ff', 34);
+    const texOuterILoveYou = createTextTexture('I love you', '#ff33aa', '#ff0077', 34);
 
-    // Açılara Özel Gizli Kelimeler (Parlak Pembe/Beyaz)
-    const texTop = createTextTexture('seni', '#ff66cc', 54);
-    const texRight = createTextTexture('çok', '#ff66cc', 54);
-    const texLeft = createTextTexture('seviyorum', '#ff66cc', 54);
-    const texBottom = createTextTexture('hayatım', '#ff66cc', 54);
+    // İç Taraf: Derin Koyu Mor (Arka planı karartıp derinlik katar)
+    const texInnerSudenaz = createTextTexture('sudenaz', '#5a189a', null, 30);
+    const texInnerILoveYou = createTextTexture('I love you', '#3c096c', null, 30);
 
-    // 3. KALP GEOMETRİSİ
+    // Gizli Açı Kelimeleri: Yüksek Kontrastlı Parlak Beyaz / Pembe (Arka planlı)
+    const texTop = createTextTexture('seni', '#ffffff', '#ff00aa', 56, true);
+    const texRight = createTextTexture('çok', '#ffffff', '#ff00aa', 56, true);
+    const texLeft = createTextTexture('seviyorum', '#ffffff', '#ff00aa', 56, true);
+    const texBottom = createTextTexture('hayatım', '#ffffff', '#ff00aa', 56, true);
+
     const heartGroup = new THREE.Group();
     scene.add(heartGroup);
 
-    const totalPoints = 420;
+    const totalPoints = 400;
     const planeGeo = new THREE.PlaneGeometry(2.2, 0.55);
 
     for (let i = 0; i < totalPoints; i++) {
@@ -103,13 +114,26 @@
       const y = (13 * Math.cos(u) - 5 * Math.cos(2*u) - 2 * Math.cos(3*u) - Math.cos(4*u)) * Math.cos(v);
       const z = 6 * Math.sin(v);
 
+      // İç-Dış ayrımı (Merkeze yakınlık kontrolü)
+      const distFromCenter = Math.sqrt(x*x + y*y + z*z);
+      const isInner = distFromCenter < 7; 
+
       const isSudenaz = Math.random() < 0.4;
+      let chosenTex;
+
+      if (isInner) {
+        chosenTex = isSudenaz ? texInnerSudenaz : texInnerILoveYou;
+      } else {
+        chosenTex = isSudenaz ? texOuterSudenaz : texOuterILoveYou;
+      }
+
       const mat = new THREE.MeshBasicMaterial({
-        map: isSudenaz ? texSudenaz : texILoveYou,
+        map: chosenTex,
         transparent: true,
-        blending: THREE.AdditiveBlending,
+        blending: isInner ? THREE.NormalBlending : THREE.AdditiveBlending,
         depthWrite: false,
-        side: THREE.DoubleSide
+        side: THREE.DoubleSide,
+        opacity: isInner ? 0.6 : 1.0 // İçtekileri hafif saydam yapıp arka plana atıyoruz
       });
 
       const mesh = new THREE.Mesh(planeGeo, mat);
@@ -120,16 +144,15 @@
       heartGroup.add(mesh);
     }
 
-    // 4. AÇIYA ÖZEL GİZLİ YAZILARI EKLEME
+    // AÇI GİZLİ YAZILARI
     function createAngleText(texture, rx, ry, rz) {
-      const geo = new THREE.PlaneGeometry(8, 2);
+      const geo = new THREE.PlaneGeometry(9, 2.25);
       const mat = new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true,
-        blending: THREE.AdditiveBlending,
         depthWrite: false,
         side: THREE.DoubleSide,
-        opacity: 0 // Başlangıçta görünmez
+        opacity: 0
       });
       const mesh = new THREE.Mesh(geo, mat);
       mesh.rotation.set(rx, ry, rz);
@@ -137,13 +160,12 @@
       return mat;
     }
 
-    // Açı Mimarileri (Radyan cinsinden rotasyonlar)
-    const matTop = createAngleText(texTop, Math.PI / 2, 0, 0);          // Üstten bakınca (RotX = PI/2)
-    const matBottom = createAngleText(texBottom, -Math.PI / 2, 0, 0);    // Alttan bakınca (RotX = -PI/2)
-    const matRight = createAngleText(texRight, 0, Math.PI / 2, 0);       // Sağdan bakınca (RotY = PI/2)
-    const matLeft = createAngleText(texLeft, 0, -Math.PI / 2, 0);       // Soldan bakınca (RotY = -PI/2)
+    const matTop = createAngleText(texTop, Math.PI / 2, 0, 0);
+    const matBottom = createAngleText(texBottom, -Math.PI / 2, 0, 0);
+    const matRight = createAngleText(texRight, 0, Math.PI / 2, 0);
+    const matLeft = createAngleText(texLeft, 0, -Math.PI / 2, 0);
 
-    // 5. DOKUNMATİK KONTROL
+    // KONTROLLER
     let isDragging = false;
     let previousMousePosition = { x: 0, y: 0 };
 
@@ -187,38 +209,30 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // 6. ANİMASYON VE AÇI HESAPLAMA DÖNGÜSÜ
+    // ANİMASYON DÖNGÜSÜ
     function animate() {
       requestAnimationFrame(animate);
 
       if (!isDragging) {
-        heartGroup.rotation.y += 0.001;
+        heartGroup.rotation.y += 0.0015;
       }
 
-      // Açılara göre Opaklık (Görünürlük) Kontrolü
-      // Açıya yaklaştıkça görünürlüğü (opacity) 0'dan 1'e çıkartıyoruz
-      const rx = heartGroup.rotation.x % (Math.PI * 2);
-      const ry = heartGroup.rotation.y % (Math.PI * 2);
-
-      // Üstten Bakış (rx yaklaşık -PI/2 veya 3PI/2)
+      // Açı Görünürlük Kontrolleri
       const topTarget = -Math.PI / 2;
       const topDiff = Math.abs(Math.sin(heartGroup.rotation.x - topTarget));
-      matTop.opacity = Math.pow(1 - topDiff, 4);
+      matTop.opacity = Math.pow(1 - topDiff, 5);
 
-      // Alttan Bakış (rx yaklaşık PI/2)
       const botTarget = Math.PI / 2;
       const botDiff = Math.abs(Math.sin(heartGroup.rotation.x - botTarget));
-      matBottom.opacity = Math.pow(1 - botDiff, 4);
+      matBottom.opacity = Math.pow(1 - botDiff, 5);
 
-      // Sağdan Bakış (ry yaklaşık -PI/2)
       const rightTarget = -Math.PI / 2;
       const rightDiff = Math.abs(Math.sin(heartGroup.rotation.y - rightTarget));
-      matRight.opacity = Math.pow(1 - rightDiff, 4);
+      matRight.opacity = Math.pow(1 - rightDiff, 5);
 
-      // Soldan Bakış (ry yaklaşık PI/2)
       const leftTarget = Math.PI / 2;
       const leftDiff = Math.abs(Math.sin(heartGroup.rotation.y - leftTarget));
-      matLeft.opacity = Math.pow(1 - leftDiff, 4);
+      matLeft.opacity = Math.pow(1 - leftDiff, 5);
 
       renderer.render(scene, camera);
     }
