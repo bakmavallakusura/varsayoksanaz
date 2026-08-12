@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Sudenaz 3D Unique Angles Heart</title>
+  <title>Sudenaz 3D Interactive Heart</title>
   <style>
     * {
       margin: 0;
@@ -28,7 +28,7 @@
     .hint {
       position: absolute;
       bottom: 20px;
-      color: rgba(255, 255, 255, 0.5);
+      color: rgba(255, 255, 255, 0.4);
       font-size: 0.8rem;
       pointer-events: none;
       text-align: center;
@@ -39,7 +39,7 @@
 <body>
 
   <div id="canvas-container"></div>
-  <div class="hint">Farklı açılardan döndürerek gizli kelimeleri yakala...</div>
+  <div class="hint">Kalbi çevirerek mesajı oku...</div>
 
   <script>
     const container = document.getElementById('canvas-container');
@@ -64,8 +64,14 @@
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       if (addBg) {
-        ctx.fillStyle = 'rgba(10, 3, 20, 0.9)';
-        ctx.fillRect(30, 15, canvas.width - 60, canvas.height - 30);
+        ctx.fillStyle = 'rgba(12, 3, 24, 0.85)';
+        ctx.strokeStyle = '#ff00aa';
+        ctx.lineWidth = 4;
+        // Yuvarlatılmış Kutu
+        ctx.beginPath();
+        ctx.roundRect(20, 10, canvas.width - 40, canvas.height - 20, 16);
+        ctx.fill();
+        ctx.stroke();
       }
 
       ctx.font = `Bold ${fontSize}px Arial`;
@@ -85,23 +91,24 @@
       return texture;
     }
 
-    // TEXTURE'LAR
+    // KALP ARKA PLAN DOKULARI
     const texOuterSudenaz = createTextTexture('sudenaz', '#f066ff', '#e000ff', 34);
     const texOuterILoveYou = createTextTexture('I love you', '#ff33aa', '#ff0077', 34);
 
-    const texInnerSudenaz = createTextTexture('sudenaz', '#4a107a', null, 28);
-    const texInnerILoveYou = createTextTexture('I love you', '#2c0454', null, 28);
+    const texInnerSudenaz = createTextTexture('sudenaz', '#3a0ca3', null, 26);
+    const texInnerILoveYou = createTextTexture('I love you', '#240046', null, 26);
 
-    // Benzersiz Gizli Kelimeler
-    const texTop = createTextTexture('seni', '#ffffff', '#ff00aa', 60, true);
-    const texRightTop = createTextTexture('çok', '#ffffff', '#ff00aa', 60, true);
-    const texLeftAngle = createTextTexture('seviyorum', '#ffffff', '#ff00aa', 60, true);
-    const texBottom = createTextTexture('hayatım', '#ffffff', '#ff00aa', 60, true);
+    // 4 ANA YÖN KELİMELERİ (Kutulu ve Çok Net)
+    const texFront = createTextTexture('seni', '#ffffff', '#ff00aa', 64, true);
+    const texRight = createTextTexture('çok', '#ffffff', '#ff00aa', 64, true);
+    const texBack = createTextTexture('seviyorum', '#ffffff', '#ff00aa', 64, true);
+    const texLeft = createTextTexture('hayatım', '#ffffff', '#ff00aa', 64, true);
 
     const heartGroup = new THREE.Group();
     scene.add(heartGroup);
 
-    const totalPoints = 380;
+    // KALP NOKTALARI
+    const totalPoints = 360;
     const planeGeo = new THREE.PlaneGeometry(2.2, 0.55);
 
     for (let i = 0; i < totalPoints; i++) {
@@ -124,7 +131,7 @@
         blending: isInner ? THREE.NormalBlending : THREE.AdditiveBlending,
         depthWrite: false,
         side: THREE.DoubleSide,
-        opacity: isInner ? 0.5 : 1.0
+        opacity: isInner ? 0.4 : 0.95
       });
 
       const mesh = new THREE.Mesh(planeGeo, mat);
@@ -135,9 +142,9 @@
       heartGroup.add(mesh);
     }
 
-    // HER BİRİ BENZERSIZ FARKLI 3D AÇILARA SAHİP YAZILAR
-    function createAngleText(texture, rx, ry, rz) {
-      const geo = new THREE.PlaneGeometry(10, 2.5);
+    // 4 YÖN KARTLARINI YERLEŞTİRME
+    function createDirectionCard(texture, angleY) {
+      const geo = new THREE.PlaneGeometry(11, 2.75);
       const mat = new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true,
@@ -146,18 +153,20 @@
         opacity: 0
       });
       const mesh = new THREE.Mesh(geo, mat);
-      mesh.rotation.set(rx, ry, rz);
+      
+      // Kalbin tam merkezine yerleştirip ilgili açıya döndürüyoruz
+      mesh.rotation.y = angleY;
       heartGroup.add(mesh);
-      return { mat, rx, ry, rz };
+      return { mat, angleY };
     }
 
-    // Tamamen Farklı Çapraz ve Düz Açılar:
-    const itemTop = createAngleText(texTop, Math.PI / 2, 0, 0);                  // Tam Üstten
-    const itemBottom = createAngleText(texBottom, -Math.PI / 2, 0, 0);              // Tam Alttan
-    const itemRightTop = createAngleText(texRightTop, -Math.PI / 4, Math.PI / 3, 0); // Sağ-Üst Çapraz
-    const itemLeftAngle = createAngleText(texLeftAngle, Math.PI / 4, -Math.PI / 3, 0); // Sol-Alt Çapraz
+    // 4 Ana Açı (Radyan)
+    const cardFront = createDirectionCard(texFront, 0);                 // Ön (0 rad)
+    const cardRight = createDirectionCard(texRight, -Math.PI / 2);      // Sağ (-90 derece)
+    const cardBack = createDirectionCard(texBack, Math.PI);             // Arka (180 derece)
+    const cardLeft = createDirectionCard(texLeft, Math.PI / 2);          // Sol (90 derece)
 
-    // KONTROLLER
+    // DOKUNMATİK VE DÖNDÜRME
     let isDragging = false;
     let previousMousePosition = { x: 0, y: 0 };
 
@@ -178,7 +187,8 @@
       const deltaY = y - previousMousePosition.y;
 
       heartGroup.rotation.y += deltaX * 0.008;
-      heartGroup.rotation.x += deltaY * 0.008;
+      // Dikey eksende çok fazla yatıp açı bozmasın diye hafif sınırlandırdık
+      heartGroup.rotation.x = Math.max(-0.4, Math.min(0.4, heartGroup.rotation.x + deltaY * 0.005));
 
       previousMousePosition = { x, y };
     }
@@ -201,31 +211,40 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // HASSAS AÇI MATEMATİĞİ (Sadece Hedef Açıya Hizalanınca Parlar)
-    function checkAngleVisibility(item) {
-      const curX = heartGroup.rotation.x;
-      const curY = heartGroup.rotation.y;
+    // RAHAT VE AKICI YAZI GÖRÜNÜRLÜK MATEMATİĞİ
+    function updateCardOpacity(card) {
+      // Y eksenindeki mevcut dönüşü 0 - 2PI arasında normalize et
+      let currentY = heartGroup.rotation.y % (Math.PI * 2);
+      if (currentY < 0) currentY += Math.PI * 2;
 
-      // Kamera açısı ile hedef açı arasındaki fark
-      const diffX = Math.abs(Math.sin(curX + item.rx));
-      const diffY = Math.abs(Math.sin(curY + item.ry));
+      let targetY = card.angleY % (Math.PI * 2);
+      if (targetY < 0) targetY += Math.PI * 2;
 
-      // Her iki eksen de tutunca tam netleşir
-      const visibility = (1 - diffX) * (1 - diffY);
-      item.mat.opacity = Math.pow(Math.max(0, visibility), 4);
+      // Kamera açısına olan mesafe
+      let diff = Math.abs(currentY - targetY);
+      if (diff > Math.PI) diff = Math.PI * 2 - diff;
+
+      // Geniş bir açıda görünür olsun (zorlamasın)
+      const maxAngle = Math.PI / 3.5; 
+      if (diff < maxAngle) {
+        const factor = 1 - (diff / maxAngle);
+        card.mat.opacity = Math.pow(factor, 2); // Yumuşak geçiş
+      } else {
+        card.mat.opacity = 0;
+      }
     }
 
     function animate() {
       requestAnimationFrame(animate);
 
       if (!isDragging) {
-        heartGroup.rotation.y += 0.0012;
+        heartGroup.rotation.y += 0.003; // Süzülme hızı
       }
 
-      checkAngleVisibility(itemTop);
-      checkAngleVisibility(itemBottom);
-      checkAngleVisibility(itemRightTop);
-      checkAngleVisibility(itemLeftAngle);
+      updateCardOpacity(cardFront);
+      updateCardOpacity(cardRight);
+      updateCardOpacity(cardBack);
+      updateCardOpacity(cardLeft);
 
       renderer.render(scene, camera);
     }
