@@ -64,8 +64,8 @@
     const heartGroup = new THREE.Group();
     scene.add(heartGroup);
 
-    // Dış Yüzey Kalp Noktaları (800 Adet)
-    for (let i = 0; i < 800; i++) {
+    // Dış Yüzey Kalp Noktaları (Yoğunluk 1200'e çıkarıldı)
+    for (let i = 0; i < 1200; i++) {
       const u = Math.PI * (2 * Math.random() - 1);
       const v = (Math.PI / 2) * (2 * Math.random() - 1);
       const x = 16 * Math.pow(Math.sin(u), 3) * Math.cos(v);
@@ -83,19 +83,19 @@
       heartGroup.add(mesh);
     }
 
-    // İç Kalp Noktaları (Merkezi Boş Bırakacak Şekilde Dağıtıldı)
-    for (let i = 0; i < 300; i++) {
+    // İç Kalp Noktaları (Yoğunluk 500'e çıkarıldı)
+    for (let i = 0; i < 500; i++) {
       const u = Math.PI * (2 * Math.random() - 1);
       const v = (Math.PI / 2) * (2 * Math.random() - 1);
       const x = 16 * Math.pow(Math.sin(u), 3) * Math.cos(v);
       const y = (13 * Math.cos(u) - 5 * Math.cos(2*u) - 2 * Math.cos(3*u) - Math.cos(4*u)) * Math.cos(v);
       const z = 6 * Math.sin(v);
       
-      const internalScale = 0.45 + Math.random() * 0.45; // Çekirdek metin için orta alanı boş bıraktık
+      const internalScale = 0.45 + Math.random() * 0.45;
       const mat = new THREE.MeshBasicMaterial({ 
         map: Math.random() > 0.5 ? texSudenaz : texLove, 
         transparent: true, 
-        opacity: 0.45, 
+        opacity: 0.5, 
         side: THREE.FrontSide 
       });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.4), mat);
@@ -113,7 +113,7 @@
     ].map(w => {
       const mat = new THREE.MeshBasicMaterial({ map: w.tex, transparent: true, opacity: 0, depthTest: false });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(12, 3), mat);
-      mesh.position.set(0, 0, 0); // Tam kalbin ortasında
+      mesh.position.set(0, 0, 0);
       scene.add(mesh);
       return { mesh, angle: w.angle };
     });
@@ -132,7 +132,7 @@
     window.addEventListener('pointermove', (e) => {
       if (!isDragging) return;
       const deltaX = e.clientX - previousMousePosition.x;
-      rotY += deltaX * 0.008;
+      rotY += deltaX * 0.008; // Manuel döndürme ivmesi
       previousMousePosition = { x: e.clientX, y: e.clientY };
     });
 
@@ -168,7 +168,8 @@
     function animate() {
       requestAnimationFrame(animate);
       
-      if (!isDragging) rotY += 0.004; // Akıcı Dönüş
+      // Dokunulsa da dokunulmasa da sürekli dönmeye devam eder
+      rotY += 0.004; 
       
       heartGroup.rotation.y = rotY;
       stars.rotation.y += 0.0003;
@@ -181,19 +182,18 @@
         let diff = Math.abs(normalizedRot - w.angle);
         if (diff > Math.PI) diff = Math.PI * 2 - diff;
 
-        const activeRange = Math.PI / 4; // Görünme açısı genişliği
+        const activeRange = Math.PI / 4;
         if (diff < activeRange) {
-          const factor = 1 - (diff / activeRange); // 0 ile 1 arası kilit yüzdesi
+          const factor = 1 - (diff / activeRange);
           
-          // Şeffaflık ve Ölçekleme (Nabız Efekti)
           w.mesh.material.opacity = Math.pow(factor, 1.8);
-          const scale = 0.85 + factor * 0.35; // İçten dışa hafif büyüme
+          const scale = 0.85 + factor * 0.35;
           w.mesh.scale.set(scale, scale, scale);
         } else {
           w.mesh.material.opacity = 0;
         }
 
-        w.mesh.rotation.copy(camera.rotation); // Kameraya düz bakma
+        w.mesh.rotation.copy(camera.rotation);
       });
 
       renderer.render(scene, camera);
