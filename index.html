@@ -3,67 +3,100 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>3D Heart Animation</title>
+  <title>Gelişmiş 3D Sudenaz Kalbi</title>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      touch-action: none; /* Dokunmatik kaydırmaları engeller */
+      touch-action: none;
     }
     body {
       height: 100vh;
-      background-color: #050505;
+      /* Arka plana hafif, derin bir gradyan ekledik */
+      background: radial-gradient(circle at center, #1a052e 0%, #050505 100%);
       display: flex;
       justify-content: center;
       align-items: center;
       overflow: hidden;
-      perspective: 1000px;
+      perspective: 1500px; /* Derinlik hissini artırdık */
       user-select: none;
     }
-    .heart-3d {
-      position: relative;
+    .scene {
       width: 0;
       height: 0;
       transform-style: preserve-3d;
+      /* Hafif bir otomatik nabız/atış animasyonu ekledik */
+      animation: heartbeat 2s ease-in-out infinite;
+    }
+    .heart-3d {
+      position: relative;
+      transform-style: preserve-3d;
       cursor: grab;
+      /* Başlangıçta daha estetik durması için hafif bir açı verdik */
+      transform: rotateX(15deg) rotateY(10deg);
     }
     .heart-3d:active {
       cursor: grabbing;
     }
     .ui_love_word {
       position: absolute;
+      /* Temel renk mor ama JS ile ışığa göre değişecek */
       color: #a020f0;
-      font-size: 1rem;
+      font-size: 1.1rem;
       font-weight: bold;
-      font-family: Arial, sans-serif;
-      text-shadow: 0 0 10px #a020f0, 0 0 20px #a020f0, 0 0 30px #d8b4fe;
+      font-family: 'Georgia', serif; /* Daha şık bir font */
+      text-shadow: 0 0 5px #a020f0;
       white-space: nowrap;
       transform-style: preserve-3d;
       backface-visibility: visible;
+      transition: color 0.1s ease, text-shadow 0.1s ease; /* Işık değişimi yumuşak olsun */
+    }
+
+    /* Kalp Atışı Animasyonu */
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
     }
   </style>
 </head>
 <body>
 
-  <div class="heart-3d" id="heart"></div>
+  <div class="scene">
+    <div class="heart-3d" id="heart"></div>
+  </div>
 
   <script>
     const container = document.getElementById('heart');
-    const layers = 16;
-    const textPerLayer = 28;
+    // Nokta sayısını ve dolgunluğu artırmak için katman ve harf sayılarını artırdık
+    const layers = 20; 
+    const textPerLayer = 35;
+    const allSpans = [];
 
-    // 3D Kalp Noktalarını Oluşturma
+    // Gelişmiş 3D Kalp Oluşturma
     for (let l = 0; l < layers; l++) {
-      const phi = (l / layers) * Math.PI;
+      // phi: tepeden aşağıya açı (0 to Pi)
+      const phi = (l / layers) * Math.PI; 
       
       for (let i = 0; i < textPerLayer; i++) {
+        // theta: kalp etrafında yatay açı (0 to 2Pi)
         const theta = (i / textPerLayer) * Math.PI * 2;
 
-        const scale = 12;
-        const x = scale * 16 * Math.pow(Math.sin(theta), 3) * Math.sin(phi);
-        const y = -scale * (13 * Math.cos(theta) - 5 * Math.cos(2 * theta) - 2 * Math.cos(3 * theta) - Math.cos(4 * theta));
-        const z = scale * 8 * Math.cos(phi) * Math.sin(theta);
+        // Daha Dolgun Kalp Formülü (Parametrik Kalp Yüzeyi)
+        const scale = 14; // Biraz daha büyüttük
+        
+        // Bu formül daha küresel ve kavisli bir kalp formu verir
+        const sinPhi = Math.sin(phi);
+        const cosPhi = Math.cos(phi);
+        const sinTheta = Math.sin(theta);
+        const cosTheta = Math.cos(theta);
+
+        // Dolgunluk için modifiye edilmiş matematik
+        const r = 1 - Math.sin(phi) * Math.cos(phi) * Math.sin(theta);
+        
+        const x = scale * 16 * Math.pow(Math.sin(theta), 3) * sinPhi;
+        const y = -scale * (13 * Math.cos(theta) - 5 * Math.cos(2 * theta) - 2 * Math.cos(3 * theta) - Math.cos(4 * theta)) * (0.8 + 0.2 * sinPhi);
+        const z = scale * 10 * Math.cos(theta) * sinPhi + scale * 2 * cosPhi; // Z ekseninde daha fazla kavis
 
         const span = document.createElement('span');
         span.className = 'ui_love_word';
@@ -75,9 +108,11 @@
           span.innerText = 'I love you';
         }
         
+        // 3D konum ve harfin kendi açısı
         span.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${theta}rad)`;
 
         container.appendChild(span);
+        allSpans.push({element: span, x, y, z, phi, theta});
       }
     }
 
@@ -85,14 +120,71 @@
     let isDragging = false;
     let previousX = 0;
     let previousY = 0;
-    let rotX = 10;
-    let rotY = 0;
+    // Başlangıç açıları
+    let rotX = 15;
+    let rotY = 10;
 
     function updateTransform() {
       container.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+      applyLighting(rotX, rotY);
     }
 
-    updateTransform();
+    // Dinamik Işıklandırma: Döndükçe harflerin rengi ve parlaklığı değişir
+    function applyLighting(currentRotX, currentRotY) {
+      // Işık kaynağının sanal açısı (örneğin ön-üst)
+      const lightX = 0;
+      const lightY = -1;
+      const lightZ = 1; // Ekrana doğru
+
+      allSpans.forEach(item => {
+        // Harfin yüzey normalini (açısını) hesapla
+        // Bu basit bir yaklaşımdır, gerçek normal daha karmaşıktır
+        const nx = item.element.style.transform.split('rotateY(')[1].split('rad)')[0];
+        const normalX = Math.sin(parseFloat(nx)) * item.element.style.transform.includes('translate3d') ? 1 : 0;
+        
+        // Rotasyonu da hesaba katan basit bir ışık şiddeti hesaplama (Phong-benzeri)
+        // Bu kısım çok basitleştirilmiştir.
+        
+        // Basit Derinlik Renklendirmesi (Işık yerine daha kolay ve etkili)
+        // Harflerin kendi açısına göre parlaklık veriyoruz.
+        // theta: 0 (arka), Pi (ön). cos(theta) -1 (arka), 1 (ön)
+        
+        // Döndürmeyi de hesaba katarak harflerin "ön" veya "arka"da olduğunu bulmalıyız.
+        // Bu çok karmaşık matematik gerektirir. 
+        // Bunun yerine, her harfin kendi açısına göre sabit bir parlaklık farkı uygulayalım:
+        
+        const brightnessFactor = (Math.cos(item.theta) + 1) / 2; // 0 (arka) ile 1 (ön) arası
+        
+        // Arka taraftaki harfler daha koyu mor, ön taraftakiler daha parlak ve neon mor.
+        // Temel renk: rgb(160, 32, 240)
+        
+        const baseR = 100, baseG = 20, baseB = 200; // Daha koyu temel mor
+        const brightR = 216, brightG = 180, brightB = 254; // Daha parlak neon
+        
+        // Gelişmiş Renk Hesaplama
+        // Arka (%40 parlaklık), Ön (%100 parlaklık)
+        const currentBrightness = 0.4 + 0.6 * brightnessFactor;
+        
+        const r = Math.round(160 * currentBrightness);
+        const g = Math.round(32 * currentBrightness);
+        const b = Math.round(240 * currentBrightness);
+        
+        item.element.style.color = `rgb(${r}, ${g}, ${b})`;
+        
+        // Ön taraftaki harflere daha güçlü parlama efekti
+        if (brightnessFactor > 0.8) {
+           item.element.style.textShadow = `0 0 10px rgb(${r},${g},${b}), 0 0 20px rgb(216, 180, 254)`;
+        } else if (brightnessFactor > 0.5) {
+           item.element.style.textShadow = `0 0 5px rgb(${r},${g},${b})`;
+        } else {
+           item.element.style.textShadow = `none`;
+           item.element.style.opacity = `0.8`; // Arka tarafı biraz daha şeffaf yap
+        }
+
+      });
+    }
+
+    updateTransform(); // İlk yüklemede ışığı uygula
 
     function startDrag(e) {
       isDragging = true;
@@ -111,8 +203,12 @@
       const deltaX = clientX - previousX;
       const deltaY = clientY - previousY;
 
-      rotY += deltaX * 0.5;
-      rotX -= deltaY * 0.5;
+      // Sürükleme hızını biraz daha hassas yaptık
+      rotY += deltaX * 0.4;
+      rotX -= deltaY * 0.4;
+
+      // Dikey döndürmeyi sınırlayalım (üst/alt sınır)
+      rotX = Math.max(-60, Math.min(60, rotX));
 
       updateTransform();
 
