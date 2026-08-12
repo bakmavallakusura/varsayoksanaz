@@ -6,7 +6,7 @@
   <title>Sudenaz 3D Heart</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { width: 100vw; height: 100vh; background: radial-gradient(circle, #1f022e 0%, #030106 100%); overflow: hidden; display: flex; justify-content: center; align-items: center; font-family: 'Arial', sans-serif; }
+    body { width: 100vw; height: 100vh; background: radial-gradient(circle, #210332 0%, #030106 100%); overflow: hidden; display: flex; justify-content: center; align-items: center; font-family: 'Arial', sans-serif; }
     #canvas-container { width: 100%; height: 100%; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -19,48 +19,36 @@
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     
-    // Kamerayı daha yakın bir konuma aldık (28 -> 20)
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 20;
+    camera.position.z = 21;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
-    // Zirvede Yumuşak Kar Efekti
+    // Arka Plan Kar Efekti
     const starGeo = new THREE.BufferGeometry();
-    const starCount = 600;
+    const starCount = 500;
     const posArr = new Float32Array(starCount * 3);
     for(let i=0; i<starCount*3; i++) posArr[i] = (Math.random() - 0.5) * 60;
     starGeo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
-    const starMat = new THREE.PointsMaterial({ size: 0.1, color: 0xffffff, transparent: true, opacity: 0.3 });
+    const starMat = new THREE.PointsMaterial({ size: 0.1, color: 0xffffff, transparent: true, opacity: 0.25 });
     const stars = new THREE.Points(starGeo, starMat);
     scene.add(stars);
 
-    // Keskin ve Yüksek Çözünürlüklü Tekstür Üretici
-    function createTextTexture(text, colorStr, glowColor, fontSize = 60, addBg = false) {
+    // Yüksek Çözünürlüklü Şeffaf Yazı Üretici
+    function createTextTexture(text, colorStr, glowColor, fontSize = 70) {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       canvas.width = 1024; canvas.height = 256;
-
-      if (addBg) {
-        // Estetik Cam Kart Tasarımı
-        ctx.fillStyle = 'rgba(20, 5, 35, 0.85)';
-        ctx.strokeStyle = '#ff22aa';
-        ctx.lineWidth = 6;
-        ctx.beginPath();
-        ctx.roundRect(40, 20, canvas.width - 80, canvas.height - 40, 30);
-        ctx.fill();
-        ctx.stroke();
-      }
 
       ctx.font = `Bold ${fontSize}px Arial`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       if (glowColor) {
         ctx.shadowColor = glowColor;
-        ctx.shadowBlur = 25;
+        ctx.shadowBlur = 35;
       }
       ctx.fillStyle = colorStr;
       ctx.fillText(text, canvas.width / 2, canvas.height / 2);
@@ -72,17 +60,11 @@
 
     const texSudenaz = createTextTexture('sudenaz', '#ff77ff', '#ff00ff', 65);
     const texLove = createTextTexture('I love you', '#ff44bb', '#ff0077', 65);
-    
-    // Şık Sunumlu Ana Kelime Kartları
-    const texFront = createTextTexture('seni', '#ffffff', '#ff00aa', 95, true);
-    const texRight = createTextTexture('çok', '#ffffff', '#ff00aa', 95, true);
-    const texBack = createTextTexture('seviyorum', '#ffffff', '#ff00aa', 95, true);
-    const texLeft = createTextTexture('hayatım', '#ffffff', '#ff00aa', 95, true);
 
     const heartGroup = new THREE.Group();
     scene.add(heartGroup);
 
-    // Dış Yüzey Kalp Noktaları (Yakınlaştırılmış ve Daha Belirgin)
+    // Dış Yüzey Kalp Noktaları (800 Adet)
     for (let i = 0; i < 800; i++) {
       const u = Math.PI * (2 * Math.random() - 1);
       const v = (Math.PI / 2) * (2 * Math.random() - 1);
@@ -92,7 +74,7 @@
       const mat = new THREE.MeshBasicMaterial({ 
         map: Math.random() > 0.5 ? texSudenaz : texLove, 
         transparent: true, 
-        opacity: 0.9, 
+        opacity: 0.85, 
         side: THREE.FrontSide 
       });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 0.5), mat);
@@ -101,19 +83,19 @@
       heartGroup.add(mesh);
     }
 
-    // İç Kalp Doldurma Noktaları (Daha Okunaklı Dizilim)
-    for (let i = 0; i < 350; i++) {
+    // İç Kalp Noktaları (Merkezi Boş Bırakacak Şekilde Dağıtıldı)
+    for (let i = 0; i < 300; i++) {
       const u = Math.PI * (2 * Math.random() - 1);
       const v = (Math.PI / 2) * (2 * Math.random() - 1);
       const x = 16 * Math.pow(Math.sin(u), 3) * Math.cos(v);
       const y = (13 * Math.cos(u) - 5 * Math.cos(2*u) - 2 * Math.cos(3*u) - Math.cos(4*u)) * Math.cos(v);
       const z = 6 * Math.sin(v);
       
-      const internalScale = 0.2 + Math.random() * 0.65;
+      const internalScale = 0.45 + Math.random() * 0.45; // Çekirdek metin için orta alanı boş bıraktık
       const mat = new THREE.MeshBasicMaterial({ 
         map: Math.random() > 0.5 ? texSudenaz : texLove, 
         transparent: true, 
-        opacity: 0.55, 
+        opacity: 0.45, 
         side: THREE.FrontSide 
       });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.4), mat);
@@ -122,17 +104,18 @@
       heartGroup.add(mesh);
     }
 
-    // Kart Yapısı (Boyutları ve Mesafesi Optimize Edildi)
-    const cards = [
-      { t: texFront, a: 0 }, { t: texRight, a: -Math.PI / 2 },
-      { t: texBack, a: Math.PI }, { t: texLeft, a: Math.PI / 2 }
-    ].map(c => {
-      const mesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(11, 2.75), 
-        new THREE.MeshBasicMaterial({ map: c.t, transparent: true, opacity: 0, side: THREE.FrontSide })
-      );
+    // Kalbin Merkezindeki Nabız Gibi Atan Mesajlar
+    const coreWords = [
+      { tex: createTextTexture('seni', '#ffffff', '#ff00aa', 100), angle: 0 },
+      { tex: createTextTexture('çok', '#ffffff', '#ff00aa', 100), angle: Math.PI / 2 },
+      { tex: createTextTexture('seviyorum', '#ffffff', '#ff00aa', 100), angle: Math.PI },
+      { tex: createTextTexture('hayatım', '#ffffff', '#ff00aa', 100), angle: (3 * Math.PI) / 2 }
+    ].map(w => {
+      const mat = new THREE.MeshBasicMaterial({ map: w.tex, transparent: true, opacity: 0, depthTest: false });
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(12, 3), mat);
+      mesh.position.set(0, 0, 0); // Tam kalbin ortasında
       scene.add(mesh);
-      return { mesh, angle: c.a };
+      return { mesh, angle: w.angle };
     });
 
     // Kontroller & Dokunma/Yakınlaştırma Desteği
@@ -153,10 +136,10 @@
       previousMousePosition = { x: e.clientX, y: e.clientY };
     });
 
-    // Zoom (Yakınlaştırma / Uzaklaştırma) Desteği
+    // Zoom Desteği
     window.addEventListener('wheel', (e) => {
       camera.position.z += e.deltaY * 0.015;
-      camera.position.z = Math.max(10, Math.min(35, camera.position.z));
+      camera.position.z = Math.max(12, Math.min(32, camera.position.z));
     }, { passive: true });
 
     let initialPinchDistance = null;
@@ -177,7 +160,7 @@
         );
         const diff = initialPinchDistance - currentDistance;
         camera.position.z += diff * 0.03;
-        camera.position.z = Math.max(10, Math.min(35, camera.position.z));
+        camera.position.z = Math.max(12, Math.min(32, camera.position.z));
         initialPinchDistance = currentDistance;
       }
     }, { passive: true });
@@ -185,8 +168,7 @@
     function animate() {
       requestAnimationFrame(animate);
       
-      // Sağdan Sola Akıcı Otomatik Dönüş
-      if (!isDragging) rotY += 0.003; 
+      if (!isDragging) rotY += 0.004; // Akıcı Dönüş
       
       heartGroup.rotation.y = rotY;
       stars.rotation.y += 0.0003;
@@ -194,17 +176,24 @@
       let normalizedRot = (rotY % (Math.PI * 2));
       if (normalizedRot < 0) normalizedRot += Math.PI * 2;
 
-      cards.forEach(c => {
-        let target = (-c.angle) % (Math.PI * 2);
-        if (target < 0) target += Math.PI * 2;
-        
-        const diff = Math.abs(normalizedRot - target);
-        const minDiff = Math.min(diff, Math.PI * 2 - diff);
-        const maxAngle = Math.PI / 5;
-        
-        c.mesh.material.opacity = minDiff < maxAngle ? Math.pow(1 - (minDiff / maxAngle), 2) : 0;
-        c.mesh.position.set(Math.sin(-c.angle - rotY) * 11, 0, Math.cos(-c.angle - rotY) * 11);
-        c.mesh.rotation.copy(camera.rotation);
+      // Merkezdeki Kelimelerin Nabız / Parlama Efekti
+      coreWords.forEach(w => {
+        let diff = Math.abs(normalizedRot - w.angle);
+        if (diff > Math.PI) diff = Math.PI * 2 - diff;
+
+        const activeRange = Math.PI / 4; // Görünme açısı genişliği
+        if (diff < activeRange) {
+          const factor = 1 - (diff / activeRange); // 0 ile 1 arası kilit yüzdesi
+          
+          // Şeffaflık ve Ölçekleme (Nabız Efekti)
+          w.mesh.material.opacity = Math.pow(factor, 1.8);
+          const scale = 0.85 + factor * 0.35; // İçten dışa hafif büyüme
+          w.mesh.scale.set(scale, scale, scale);
+        } else {
+          w.mesh.material.opacity = 0;
+        }
+
+        w.mesh.rotation.copy(camera.rotation); // Kameraya düz bakma
       });
 
       renderer.render(scene, camera);
