@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D I Love You Heart</title>
+  <title>3D Heart Animation</title>
   <style>
     * {
       margin: 0;
@@ -28,11 +28,11 @@
     }
     .ui_love_word {
       position: absolute;
-      color: #ff2a70;
+      color: #a020f0;
       font-size: 1rem;
       font-weight: bold;
       font-family: Arial, sans-serif;
-      text-shadow: 0 0 10px #ff2a70, 0 0 20px #ff2a70;
+      text-shadow: 0 0 10px #a020f0, 0 0 20px #a020f0, 0 0 30px #d8b4fe;
       white-space: nowrap;
       transform-style: preserve-3d;
       backface-visibility: visible;
@@ -70,7 +70,13 @@
 
         const span = document.createElement('span');
         span.className = 'ui_love_word';
-        span.innerText = 'I love you';
+        
+        // %40 ihtimalle sudenaz, %60 ihtimalle I love you yazdırır
+        if (Math.random() < 0.4) {
+          span.innerText = 'sudenaz';
+        } else {
+          span.innerText = 'I love you';
+        }
         
         span.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${theta}rad)`;
 
