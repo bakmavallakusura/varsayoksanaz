@@ -64,8 +64,8 @@
     const heartGroup = new THREE.Group();
     scene.add(heartGroup);
 
-    // Dış Yüzey Kalp Noktaları (Yoğunluk 1200'e çıkarıldı)
-    for (let i = 0; i < 1200; i++) {
+    // Dış Yüzey Kalp Noktaları (2200 Adet)
+    for (let i = 0; i < 2200; i++) {
       const u = Math.PI * (2 * Math.random() - 1);
       const v = (Math.PI / 2) * (2 * Math.random() - 1);
       const x = 16 * Math.pow(Math.sin(u), 3) * Math.cos(v);
@@ -77,46 +77,32 @@
         opacity: 0.85, 
         side: THREE.FrontSide 
       });
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 0.5), mat);
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.45), mat);
       mesh.position.set(x * 0.38, y * 0.38, z * 0.38);
       mesh.lookAt(mesh.position.clone().multiplyScalar(2));
       heartGroup.add(mesh);
     }
 
-    // İç Kalp Noktaları (Yoğunluk 500'e çıkarıldı)
-    for (let i = 0; i < 500; i++) {
+    // İç Kalp Noktaları (1000 Adet)
+    for (let i = 0; i < 1000; i++) {
       const u = Math.PI * (2 * Math.random() - 1);
       const v = (Math.PI / 2) * (2 * Math.random() - 1);
       const x = 16 * Math.pow(Math.sin(u), 3) * Math.cos(v);
       const y = (13 * Math.cos(u) - 5 * Math.cos(2*u) - 2 * Math.cos(3*u) - Math.cos(4*u)) * Math.cos(v);
       const z = 6 * Math.sin(v);
       
-      const internalScale = 0.45 + Math.random() * 0.45;
+      const internalScale = Math.random() * 0.85;
       const mat = new THREE.MeshBasicMaterial({ 
         map: Math.random() > 0.5 ? texSudenaz : texLove, 
         transparent: true, 
         opacity: 0.5, 
         side: THREE.FrontSide 
       });
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.4), mat);
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.38), mat);
       mesh.position.set(x * 0.38 * internalScale, y * 0.38 * internalScale, z * 0.38 * internalScale);
       mesh.rotation.y = Math.random() * Math.PI;
       heartGroup.add(mesh);
     }
-
-    // Kalbin Merkezindeki Nabız Gibi Atan Mesajlar
-    const coreWords = [
-      { tex: createTextTexture('seni', '#ffffff', '#ff00aa', 100), angle: 0 },
-      { tex: createTextTexture('çok', '#ffffff', '#ff00aa', 100), angle: Math.PI / 2 },
-      { tex: createTextTexture('seviyorum', '#ffffff', '#ff00aa', 100), angle: Math.PI },
-      { tex: createTextTexture('hayatım', '#ffffff', '#ff00aa', 100), angle: (3 * Math.PI) / 2 }
-    ].map(w => {
-      const mat = new THREE.MeshBasicMaterial({ map: w.tex, transparent: true, opacity: 0, depthTest: false });
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(12, 3), mat);
-      mesh.position.set(0, 0, 0);
-      scene.add(mesh);
-      return { mesh, angle: w.angle };
-    });
 
     // Kontroller & Dokunma/Yakınlaştırma Desteği
     let isDragging = false, rotY = 0;
@@ -132,7 +118,7 @@
     window.addEventListener('pointermove', (e) => {
       if (!isDragging) return;
       const deltaX = e.clientX - previousMousePosition.x;
-      rotY += deltaX * 0.008; // Manuel döndürme ivmesi
+      rotY += deltaX * 0.008;
       previousMousePosition = { x: e.clientX, y: e.clientY };
     });
 
@@ -168,33 +154,10 @@
     function animate() {
       requestAnimationFrame(animate);
       
-      // Dokunulsa da dokunulmasa da sürekli dönmeye devam eder
-      rotY += 0.004; 
+      rotY += 0.004; // Kesintisiz otomatik dönüş
       
       heartGroup.rotation.y = rotY;
       stars.rotation.y += 0.0003;
-
-      let normalizedRot = (rotY % (Math.PI * 2));
-      if (normalizedRot < 0) normalizedRot += Math.PI * 2;
-
-      // Merkezdeki Kelimelerin Nabız / Parlama Efekti
-      coreWords.forEach(w => {
-        let diff = Math.abs(normalizedRot - w.angle);
-        if (diff > Math.PI) diff = Math.PI * 2 - diff;
-
-        const activeRange = Math.PI / 4;
-        if (diff < activeRange) {
-          const factor = 1 - (diff / activeRange);
-          
-          w.mesh.material.opacity = Math.pow(factor, 1.8);
-          const scale = 0.85 + factor * 0.35;
-          w.mesh.scale.set(scale, scale, scale);
-        } else {
-          w.mesh.material.opacity = 0;
-        }
-
-        w.mesh.rotation.copy(camera.rotation);
-      });
 
       renderer.render(scene, camera);
     }
